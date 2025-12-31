@@ -4,43 +4,42 @@
 
 @layer base {
   body {
-    @apply bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen;
+    @apply bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen;
   }
 }
 
 @layer components {
-  .btn-primary {
-    @apply bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5;
-  }
-  
-  .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-all duration-200;
-  }
-  
   .card {
-    @apply bg-white rounded-xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl;
+    @apply bg-white rounded-lg shadow-md p-6 transition-all duration-200 hover:shadow-lg;
   }
-  
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary to-secondary text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:bg-gray-300 active:scale-95;
+  }
+
   .input-field {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200;
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200;
   }
 }
 
-/* Custom scrollbar for task lists */
-.space-y-3::-webkit-scrollbar {
-  width: 6px;
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.space-y-3::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: #f1f1f1;
-  border-radius: 10px;
 }
 
-.space-y-3::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
 }
 
-.space-y-3::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
