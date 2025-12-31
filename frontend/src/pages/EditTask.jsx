@@ -31,7 +31,7 @@ const EditTask = () => {
       const res = await axios.get(`/api/tasks/${id}`);
       const task = res.data;
       
-      if (task.createdBy._id !== user.id) {
+      if (task.createdBy._id.toString() !== user._id.toString()) {
         toast.error('Only the creator can edit this task');
         navigate('/tasks');
         return;

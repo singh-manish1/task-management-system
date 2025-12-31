@@ -89,14 +89,14 @@ const TaskDetails = () => {
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">{task.title}</h1>
                 <div className="flex items-center space-x-3">
                   <span className={`px-3 py-1 text-sm font-semibold rounded-full border ${getPriorityColor(task.priority)}`}>
-                    {task.priority} priority
+                    {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} priority
                   </span>
                   <span className={`px-3 py-1 text-sm font-semibold rounded-full border ${getStatusColor(task.status)}`}>
-                    {task.status}
+                    {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
                   </span>
                 </div>
               </div>
-              {task.createdBy._id === user.id && (
+              {task.createdBy._id.toString() === user._id.toString() && (
                 <div className="flex space-x-2">
                   <Link
                     to={`/tasks/${task._id}/edit`}

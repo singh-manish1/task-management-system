@@ -1,10 +1,9 @@
 import { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { motion } from 'framer-motion';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import axios from 'axios';
-import { Plus, Calendar, User, CheckCircle2, Circle } from 'lucide-react';
+import { Plus, Calendar, User, CheckCircle2, Circle, GripVertical } from 'lucide-react';
 import AuthContext from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 
@@ -32,32 +31,53 @@ const Dashboard = () => {
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
-    if (source.droppableId === destination.droppableId) return;
-
-    const task = tasks.find(t => t._id === draggableId);
-    if (task.createdBy._id !== user.id) {
-      toast.error('Only the creator can change task priority');
+    
+    // If dropped in the same position, do nothing
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
       return;
     }
 
-    const newPriority = destination.droppableId;
-    const updatedTasks = tasks.map(t =>
-      t._id === draggableId ? { ...t, priority: newPriority } : t
-    );
-    setTasks(updatedTasks);
+    const task = tasks.find(t => t._id === draggableId);
+    
+    // If moving to a different priority column, check permissions
+    if (source.droppableId !== destination.droppableId) {
+      if (task.createdBy._id.toString() !== user._id.toString()) {
+        toast.error('Only the creator can change task priority');
+        return;
+      }
 
-    try {
-      await axios.put(`/api/tasks/${draggableId}`, { priority: newPriority });
-      toast.success('Task priority updated');
-    } catch (err) {
-      setTasks(tasks);
-      toast.error('Failed to update task');
+      const newPriority = destination.droppableId;
+      const updatedTasks = tasks.map(t =>
+        t._id === draggableId ? { ...t, priority: newPriority } : t
+      );
+      setTasks(updatedTasks);
+
+      try {
+        await axios.put(`/api/tasks/${draggableId}`, { priority: newPriority });
+        toast.success('Task priority updated');
+      } catch (err) {
+        setTasks(tasks);
+        toast.error('Failed to update task');
+      }
+    } else {
+      // Reordering within the same column
+      const priorityTasks = getTasksByPriority(source.droppableId);
+      const reorderedTasks = Array.from(priorityTasks);
+      const [movedTask] = reorderedTasks.splice(source.index, 1);
+      reorderedTasks.splice(destination.index, 0, movedTask);
+      
+      // Update the tasks array with the new order
+      const otherTasks = tasks.filter(t => t.priority !== source.droppableId);
+      setTasks([...otherTasks, ...reorderedTasks]);
     }
   };
 
   const toggleStatus = async (taskId) => {
     const task = tasks.find(t => t._id === taskId);
-    if (task.assignedTo._id !== user.id) {
+    if (task.assignedTo._id.toString() !== user._id.toString()) {
       toast.error('Only the assigned user can update status');
       return;
     }
@@ -120,32 +140,18 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="card bg-gradient-to-br from-blue-50 to-blue-100"
-          >
+          <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Tasks</h3>
             <p className="text-4xl font-bold text-blue-600">{stats.total}</p>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="card bg-gradient-to-br from-orange-50 to-orange-100"
-          >
+          </div>
+          <div className="card bg-gradient-to-br from-orange-50 to-orange-100">
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Pending</h3>
             <p className="text-4xl font-bold text-orange-600">{stats.pending}</p>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="card bg-gradient-to-br from-green-50 to-green-100"
-          >
+          </div>
+          <div className="card bg-gradient-to-br from-green-50 to-green-100">
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Completed</h3>
             <p className="text-4xl font-bold text-green-600">{stats.completed}</p>
-          </motion.div>
+          </div>
         </div>
 
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -171,47 +177,51 @@ const Dashboard = () => {
                         {priorityTasks.map((task, index) => (
                           <Draggable key={task._id} draggableId={task._id} index={index}>
                             {(provided, snapshot) => (
-                              <motion.div
+                              <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className={`bg-white p-4 rounded-lg shadow-md mb-3 ${
-                                  snapshot.isDragging ? 'shadow-2xl' : ''
+                                className={`bg-white p-4 rounded-lg shadow-md mb-3 hover:shadow-lg transition-shadow ${
+                                  snapshot.isDragging ? 'shadow-2xl rotate-2' : ''
                                 } ${task.status === 'completed' ? 'opacity-60' : ''}`}
                               >
-                                <div className="flex items-start justify-between mb-2">
-                                  <h3 className="font-semibold text-gray-900 flex-1">{task.title}</h3>
-                                  <button
-                                    onClick={() => toggleStatus(task._id)}
-                                    className="ml-2"
-                                  >
-                                    {task.status === 'completed' ? (
-                                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                    ) : (
-                                      <Circle className="h-5 w-5 text-gray-400" />
-                                    )}
-                                  </button>
-                                </div>
-                                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{task.description}</p>
-                                <div className="flex items-center justify-between text-xs text-gray-500">
-                                  <div className="flex items-center space-x-1">
-                                    <Calendar className="h-4 w-4" />
-                                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                                <div className="flex items-start space-x-2">
+                                  <div {...provided.dragHandleProps} className="mt-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+                                    <GripVertical className="h-5 w-5" />
                                   </div>
-                                  <div className="flex items-center space-x-1">
-                                    <User className="h-4 w-4" />
-                                    <span>{task.assignedTo?.name}</span>
+                                  <div className="flex-1">
+                                    <div className="flex items-start justify-between mb-2">
+                                      <h3 className="font-semibold text-gray-900 flex-1">{task.title}</h3>
+                                      <button
+                                        onClick={() => toggleStatus(task._id)}
+                                        className="ml-2"
+                                      >
+                                        {task.status === 'completed' ? (
+                                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                        ) : (
+                                          <Circle className="h-5 w-5 text-gray-400" />
+                                        )}
+                                      </button>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{task.description}</p>
+                                    <div className="flex items-center justify-between text-xs text-gray-500">
+                                      <div className="flex items-center space-x-1">
+                                        <Calendar className="h-4 w-4" />
+                                        <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                                      </div>
+                                      <div className="flex items-center space-x-1">
+                                        <User className="h-4 w-4" />
+                                        <span>{task.assignedTo?.name}</span>
+                                      </div>
+                                    </div>
+                                    <Link
+                                      to={`/tasks/${task._id}`}
+                                      className="text-xs text-primary hover:text-secondary mt-2 inline-block"
+                                    >
+                                      View Details
+                                    </Link>
                                   </div>
                                 </div>
-                                <Link
-                                  to={`/tasks/${task._id}`}
-                                  className="text-xs text-primary hover:text-secondary mt-2 inline-block"
-                                >
-                                  View Details
-                                </Link>
-                              </motion.div>
+                              </div>
                             )}
                           </Draggable>
                         ))}
